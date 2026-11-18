@@ -1,0 +1,129 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ActInvent API - Especificación Modular",
+    "description": "API REST para el sistema de consulta y aprendizaje de códigos de productos para cajeros de la multinacional.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "Servidor Local / Monolito Modular"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "code": { "type": "string", "example": "4011" },
+          "barcode": { "type": "string", "example": "7701234567890" },
+          "name": { "type": "string", "example": "Banano Criollo Granel" },
+          "description": { "type": "string" },
+          "categoryId": { "type": "string" },
+          "categoryName": { "type": "string" },
+          "categoryIcon": { "type": "string" },
+          "isNew": { "type": "integer", "enum": [0, 1] },
+          "price": { "type": "number", "example": 2400 },
+          "unit": { "type": "string", "example": "kg" },
+          "status": { "type": "string", "enum": ["active", "inactive"] },
+          "notes": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "stores": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "code": { "type": "string" },
+                "name": { "type": "string" },
+                "city": { "type": "string" },
+                "country": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" },
+              "correlationId": { "type": "string" },
+              "timestamp": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/products": {
+      "get": {
+        "summary": "Consultar productos (Actuales y Nuevos)",
+        "description": "Utilizado por los cajeros para buscar códigos por término, filtrar por nuevo/actual, por tienda y por categoría.",
+        "parameters": [
+          { "name": "search", "in": "query", "schema": { "type": "string" }, "description": "Búsqueda por código PLU, nombre o código de barras" },
+          { "name": "is_new", "in": "query", "schema": { "type": "integer", "enum": [0, 1] }, "description": "1 para productos nuevos, 0 para actuales" },
+          { "name": "store_id", "in": "query", "schema": { "type": "string" }, "description": "Filtrar por tienda multinacional" },
+          { "name": "category_id", "in": "query", "schema": { "type": "string" }, "description": "Filtrar por categoría" }
+        ],
+        "responses": {
+          "200": { "description": "Lista de productos paginada o filtrada" }
+        }
+      },
+      "post": {
+        "summary": "Crear nuevo producto (Solo Administrador)",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "201": { "description": "Producto creado" },
+          "401": { "description": "No autorizado" },
+          "409": { "description": "Código ya existente" }
+        }
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "summary": "Obtener detalles de producto para Modal",
+        "description": "Retorna todos los detalles del producto para mostrar en el modal del cajero (código en grande, tiendas, código de barras, notas).",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Detalles completos del producto" },
+          "404": { "description": "Producto no encontrado" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Autenticación de usuario",
+        "description": "Permite iniciar sesión como Administrador o como Cajero",
+        "responses": {
+          "200": { "description": "Login exitoso, devuelve JWT token y perfil" },
+          "401": { "description": "Credenciales inválidas" }
+        }
+      }
+    },
+    "/stores": {
+      "get": {
+        "summary": "Listar tiendas de la multinacional",
+        "responses": {
+          "200": { "description": "Lista de tiendas activas" }
+        }
+      }
+    }
+  }
+}

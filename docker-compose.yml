@@ -1,0 +1,25 @@
+services:
+  actinvent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: actinvent-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/data/actinvent.db
+      - JWT_SECRET=actinvent-production-secret-key-change-in-prod
+    volumes:
+      - actinvent_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  actinvent_data:

@@ -1,0 +1,27 @@
+{
+  "name": "actinvent-workspace",
+  "version": "1.0.0",
+  "description": "actinvent - Sistema modular para consulta y aprendizaje de códigos de productos para cajeros de tiendas multinacionales",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=server & npm run dev --workspace=client",
+    "build": "npm run build --workspace=client && npm run build --workspace=server",
+    "start": "npm run start --workspace=server",
+    "test": "npm run test --workspace=server",
+    "seed": "npm run seed --workspace=server"
+  },
+  "keywords": [
+    "cajeros",
+    "codigos",
+    "inventario",
+    "retail",
+    "monolito-modular",
+    "sqlite"
+  ],
+  "author": "",
+  "license": "MIT"
+}
