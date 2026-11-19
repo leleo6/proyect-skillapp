@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Navbar } from './components/Navbar';
+import { BrandHero } from './components/BrandHero';
 import { SearchAndFilters } from './components/SearchAndFilters';
 import { ProductCard } from './components/ProductCard';
 import { ProductTable } from './components/ProductTable';
@@ -14,19 +15,18 @@ import { Product, Category, Store, GeneralStats } from './types';
 import { api } from './services/api';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
+import { useBrand } from './context/BrandContext';
 import { 
   Sparkles, 
-  PackageOpen, 
-  AlertCircle, 
-  GraduationCap, 
-  Building2, 
   RefreshCw,
-  SearchX
+  SearchX,
+  AlertCircle
 } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { isAdmin } = useAuth();
   const { showToast } = useToast();
+  const { adaptToStoreCode } = useBrand();
 
   // Data states
   const [products, setProducts] = useState<Product[]>([]);
@@ -100,6 +100,20 @@ export const App: React.FC = () => {
     loadProducts();
   }, [loadProducts]);
 
+  // Handle store change and auto-adapt brand
+  const handleStoreChange = (storeId: string) => {
+    setSelectedStoreId(storeId);
+    const foundStore = stores.find(s => s.id === storeId);
+    if (foundStore) {
+      adaptToStoreCode(foundStore.code);
+    }
+  };
+
+  // Find currently selected store object
+  const currentStore = useMemo(() => {
+    return stores.find(s => s.id === selectedStoreId);
+  }, [stores, selectedStoreId]);
+
   // Modal Next & Previous product navigation
   const currentIndex = useMemo(() => {
     if (!selectedProduct) return -1;
@@ -159,12 +173,12 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-brand-500 selection:text-white transition-colors">
       
       {/* Toast Notification Layer */}
       <ToastContainer />
 
-      {/* Primary Header */}
+      {/* Primary Header with Adaptive Brand Selector */}
       <Navbar
         onOpenAddModal={() => {
           setProductToEdit(null);
@@ -179,54 +193,15 @@ export const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        {/* Banner de Bienvenida y Foco para Cajeros */}
-        <div className="bg-gradient-to-r from-brand-900 via-brand-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-brand-950/20 relative overflow-hidden">
-          <div className="absolute right-0 top-0 bottom-0 opacity-10 pointer-events-none flex items-center pr-8">
-            <Building2 className="w-80 h-80 text-white" />
-          </div>
-
-          <div className="relative z-10 max-w-2xl space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-semibold tracking-wide border border-white/10">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Sistema de Códigos PLU & Actualizaciones de Tienda</span>
-            </div>
-            
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight">
-              Aprende y consulta los códigos de productos al instante
-            </h1>
-
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-              Diseñado para los cajeros de la multinacional. Olvídate de hacer hojas de códigos a mano: 
-              encuentra códigos nuevos, revisa detalles en balanza y practica para memorizarlos.
-            </p>
-
-            {/* Quick Metrics Bar */}
-            <div className="pt-2 flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm font-semibold">
-              <div 
-                onClick={() => setIsNewFilter(1)}
-                className="flex items-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 px-3.5 py-1.5 rounded-xl cursor-pointer transition-all"
-                title="Ver solo productos nuevos"
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="font-extrabold text-emerald-300">{stats.newProducts} Códigos Nuevos</span>
-                <span className="text-slate-300 text-xs">esta semana</span>
-              </div>
-
-              <div className="flex items-center gap-2 text-slate-300">
-                <span className="font-bold text-white">{stats.totalProducts}</span>
-                <span>productos registrados</span>
-              </div>
-
-              <div className="flex items-center gap-2 text-slate-300">
-                <span className="font-bold text-white">{stats.totalStores}</span>
-                <span>tiendas sincronizadas</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Adaptive Brand Hero Banner */}
+        <BrandHero
+          currentStore={currentStore}
+          stats={stats}
+          filteredCount={products.length}
+        />
 
         {/* Search, Filter Bar and Scope Switcher */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm">
+        <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs">
           <SearchAndFilters
             search={search}
             onSearchChange={setSearch}
@@ -235,7 +210,7 @@ export const App: React.FC = () => {
             selectedCategoryId={selectedCategoryId}
             onCategoryChange={setSelectedCategoryId}
             selectedStoreId={selectedStoreId}
-            onStoreChange={setSelectedStoreId}
+            onStoreChange={handleStoreChange}
             categories={categories}
             stores={stores}
             totalCount={stats.totalProducts}
@@ -251,10 +226,10 @@ export const App: React.FC = () => {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-3">
               <RefreshCw className="w-8 h-8 text-brand-600 animate-spin" />
-              <p className="text-sm font-semibold text-slate-500">Cargando códigos de productos...</p>
+              <p className="text-sm font-bold text-slate-500">Cargando catálogo adaptativo de códigos...</p>
             </div>
           ) : products.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto space-y-4 shadow-sm">
+            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto space-y-4 shadow-xs">
               <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                 <SearchX className="w-8 h-8" />
               </div>
@@ -272,7 +247,7 @@ export const App: React.FC = () => {
                   setSelectedCategoryId('');
                   setSelectedStoreId('');
                 }}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
               >
                 Limpiar todos los filtros
               </button>
@@ -309,38 +284,14 @@ export const App: React.FC = () => {
 
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-medium">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900">ActInvent</span>
-            <span>· Especificación Técnica según SKILLS.md</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span>WCAG 2.2 AA Accesible</span>
-            <span>·</span>
-            <span>Monolito Modular SQLite</span>
-            <span>·</span>
-            <a href="/api/health" target="_blank" rel="noreferrer" className="text-brand-600 hover:underline">
-              API Health
-            </a>
-            <span>·</span>
-            <a href="/api/openapi.json" target="_blank" rel="noreferrer" className="text-brand-600 hover:underline">
-              OpenAPI Spec
-            </a>
-          </div>
-        </div>
-      </footer>
-
-      {/* MODAL 1: Product Details Modal (Requisito clave del usuario) */}
+      {/* Modals Layer */}
       <ProductModal
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
-        onNext={currentIndex < products.length - 1 ? handleNextProduct : undefined}
-        onPrevious={currentIndex > 0 ? handlePrevProduct : undefined}
+        onNext={handleNextProduct}
+        onPrevious={handlePrevProduct}
       />
 
-      {/* MODAL 2: Admin Add/Edit Product Modal */}
       <ProductFormModal
         isOpen={isAddModalOpen}
         onClose={() => {
@@ -353,14 +304,12 @@ export const App: React.FC = () => {
         stores={stores}
       />
 
-      {/* MODAL 3: Study Mode / Flashcards (Para que los cajeros memoricen códigos nuevos) */}
       <StudyModeModal
         isOpen={isStudyModalOpen}
         onClose={() => setIsStudyModalOpen(false)}
         products={products}
       />
 
-      {/* MODAL 4: Printable Cheat-Sheet View (Para que no hagan tablas a mano) */}
       <CheatSheetModal
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
@@ -369,50 +318,64 @@ export const App: React.FC = () => {
         currentStoreId={selectedStoreId}
       />
 
-      {/* MODAL 5: Login Modal */}
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
       />
 
-      {/* MODAL 6: Audit Logs Modal */}
       <AuditModal
         isOpen={isAuditModalOpen}
         onClose={() => setIsAuditModalOpen(false)}
       />
 
-      {/* Confirm Deactivate Dialog */}
+      {/* Delete Confirmation Dialog */}
       {productToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-100">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl border border-slate-200">
             <div className="flex items-center gap-3 text-rose-600">
-              <div className="p-2.5 rounded-full bg-rose-50 border border-rose-200">
+              <span className="p-2 rounded-2xl bg-rose-50 border border-rose-200">
                 <AlertCircle className="w-6 h-6" />
-              </div>
-              <h3 className="font-bold text-base text-slate-900">
-                ¿Desactivar producto?
-              </h3>
+              </span>
+              <h3 className="text-base font-black text-slate-900">¿Desactivar producto?</h3>
             </div>
-            <p className="text-xs text-slate-600">
-              ¿Seguro que deseas desactivar el producto <strong>{productToDelete.name}</strong> (Código {productToDelete.code})? Ya no aparecerá en las terminales de caja.
+            <p className="text-xs text-slate-600 leading-relaxed">
+              ¿Estás seguro de que deseas desactivar el producto{' '}
+              <strong className="text-slate-900 font-mono">[{productToDelete.code}] {productToDelete.name}</strong>?
+              Ya no aparecerá en las consultas de los cajeros.
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setProductToDelete(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50"
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm"
+                className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition-colors"
               >
-                Sí, Desactivar
+                Sí, desactivar
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Cashier Footer with WCAG notice */}
+      <footer className="mt-auto border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500 print:hidden transition-colors">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="font-semibold text-slate-600">
+            ActInvent © 2026 · Solución de Consulta y Novedades de Códigos para Cajeros
+          </p>
+          <div className="flex items-center gap-4 text-[11px] font-bold text-slate-400">
+            <span>Accesibilidad WCAG 2.2 AA</span>
+            <span>•</span>
+            <span>Diseño Multimarca Adaptativo</span>
+            <span>•</span>
+            <span>Monolito Modular</span>
+          </div>
+        </div>
+      </footer>
 
     </div>
   );

@@ -1,0 +1,180 @@
+name: Build & Release Multiplataforma (Linux & Windows)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión del Release (ej: v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  # -------------------------------------------------------------
+  # Compilación y Empaquetado para Windows y Linux
+  # -------------------------------------------------------------
+  build-and-package:
+    name: Compilar en ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: actinvent-linux-x64
+            archive_format: tar.gz
+          - os: windows-latest
+            artifact_name: actinvent-windows-x64
+            archive_format: zip
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Compilar Frontend y Backend
+        run: npm run build
+
+      # Empaquetado en Linux
+      - name: Empaquetar distribución para Linux
+        if: runner.os == 'Linux'
+        run: |
+          VERSION="${{ github.ref_name || inputs.version }}"
+          DIST_DIR="actinvent-linux-${VERSION}"
+          mkdir -p "${DIST_DIR}"
+
+          # Copiar archivos esenciales para ejecución en producción
+          cp package.json "${DIST_DIR}/"
+          cp package-lock.json "${DIST_DIR}/"
+          mkdir -p "${DIST_DIR}/server"
+          cp server/package.json "${DIST_DIR}/server/"
+          cp -r server/dist "${DIST_DIR}/server/"
+          cp .env.example "${DIST_DIR}/"
+          cp README.md "${DIST_DIR}/"
+          cp -r docs "${DIST_DIR}/"
+          cp docker-compose.yml "${DIST_DIR}/"
+          cp Dockerfile "${DIST_DIR}/"
+
+          # Script de arranque para Linux
+          cat << 'EOF' > "${DIST_DIR}/start.sh"
+          #!/usr/bin/env bash
+          set -e
+          cd "$(dirname "$0")"
+          if [ ! -f .env ]; then
+            echo "[INFO] Creando .env inicial desde .env.example..."
+            cp .env.example .env
+          fi
+          echo "[INFO] Instalando dependencias de producción..."
+          npm install --omit=dev --workspace=server
+          echo "[INFO] Iniciando ActInvent..."
+          node server/dist/index.js
+          EOF
+          chmod +x "${DIST_DIR}/start.sh"
+
+          tar -czvf "actinvent-linux-${VERSION}.tar.gz" "${DIST_DIR}"
+
+      # Empaquetado en Windows
+      - name: Empaquetar distribución para Windows
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $Version = if ("${{ github.ref_name }}") { "${{ github.ref_name }}" } else { "${{ inputs.version }}" }
+          $DistDir = "actinvent-windows-$Version"
+          New-Item -ItemType Directory -Path $DistDir -Force | Out-Null
+
+          # Copiar archivos esenciales
+          Copy-Item package.json -Destination $DistDir
+          Copy-Item package-lock.json -Destination $DistDir
+          New-Item -ItemType Directory -Path "$DistDir\server" -Force | Out-Null
+          Copy-Item server\package.json -Destination "$DistDir\server"
+          Copy-Item -Recurse server\dist -Destination "$DistDir\server\dist"
+          Copy-Item .env.example -Destination $DistDir
+          Copy-Item README.md -Destination $DistDir
+          Copy-Item -Recurse docs -Destination "$DistDir\docs"
+          Copy-Item docker-compose.yml -Destination $DistDir
+          Copy-Item Dockerfile -Destination $DistDir
+
+          # Script de arranque en Windows (CMD / PowerShell)
+          @"
+          @echo off
+          cd /d "%~dp0"
+          if not exist .env (
+            echo [INFO] Creando .env inicial desde .env.example...
+            copy .env.example .env
+          )
+          echo [INFO] Instalando dependencias de produccion...
+          call npm install --omit=dev --workspace=server
+          echo [INFO] Iniciando ActInvent en http://localhost:3000 ...
+          node server\dist\index.js
+          pause
+          "@ | Out-File -FilePath "$DistDir\iniciar.bat" -Encoding ASCII
+
+          Compress-Archive -Path $DistDir -DestinationPath "actinvent-windows-$Version.zip" -Force
+
+      - name: Subir artefacto compilado
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            *.tar.gz
+            *.zip
+
+  # -------------------------------------------------------------
+  # Publicación del Release en GitHub
+  # -------------------------------------------------------------
+  publish-release:
+    name: Publicar Release en GitHub
+    needs: build-and-package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Descargar todos los paquetes
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets/
+          merge-multiple: true
+
+      - name: Publicar Release en GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || inputs.version }}
+          name: ActInvent ${{ github.ref_name || inputs.version }} · Adaptive Brand Designs
+          body: |
+            ## 🛒 ActInvent - Release Oficial (${{ github.ref_name || inputs.version }})
+            
+            ### ✨ Novedades y Características Principales
+            - **Adaptive Brand Designs:** Sistema de diseño adaptativo con 5 identidades de marca retail (*ActInvent Hyper*, *EcoFresh Market*, *SuperFlash Express*, *Prestige Gourmet*, *POS Terminal Pro*).
+            - **Sincronización Automática por Tienda:** Detección de tienda multinacional y adaptación de estilos en tiempo real.
+            - **Modo Alto Contraste:** Optimizado para terminales de caja registradora bajo iluminación intensa (WCAG 2.2 AA / AAA).
+            - **Ficha Técnica en Modal Accesible:** Códigos PLU en tipografía gigante para lectura a distancia, código de barras y notas para balanza.
+            - **Modo Estudio / Flashcards:** Entrenamiento y memorización de novedades para cajeros.
+            - **Hoja Imprimible (Cheat-Sheet):** Generador de tablas físicas optimizadas para impresión (Ctrl+P).
+            - **Monolito Modular:** Node.js 22 + React 18 + Vite + TailwindCSS + SQLite con WAL.
+            
+            ### 📦 Paquetes Descargables
+            - **Linux (x64):** `actinvent-linux-*.tar.gz` (incluye script `start.sh`).
+            - **Windows (x64):** `actinvent-windows-*.zip` (incluye script `iniciar.bat`).
+            - **Docker:** `docker compose up -d --build` para despliegue instantáneo con volumen persistente.
+            
+            ### 📖 Documentación Incluida
+            - [Manual Técnico](docs/MANUAL_TECNICO.md)
+            - [Manual de Usuario](docs/MANUAL_USUARIO.md)
+            - [Manual de Despliegue](docs/MANUAL_DESPLIEGUE.md)
+          files: release-assets/*
+          draft: false
+          prerelease: false

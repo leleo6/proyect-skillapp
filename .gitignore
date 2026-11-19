@@ -10,6 +10,12 @@ out/
 client/dist/
 server/dist/
 
+# Release archives and packages
+*.zip
+*.tar.gz
+*.tgz
+release-assets/
+
 # SQLite databases & journals
 *.db
 *.db-*
@@ -31,6 +37,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Coverage and testing
+coverage/
+.nyc_output/
 
 # OS and Editor metadata
 .DS_Store

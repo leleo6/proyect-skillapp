@@ -2,16 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-brand-50: #f0f9ff;
+  --color-brand-50-rgb: 240 249 255;
+  --color-brand-100: #e0f2fe;
+  --color-brand-100-rgb: 224 242 254;
+  --color-brand-200: #bae6fd;
+  --color-brand-200-rgb: 186 230 253;
+  --color-brand-300: #7dd3fc;
+  --color-brand-300-rgb: 125 211 252;
+  --color-brand-400: #38bdf8;
+  --color-brand-400-rgb: 56 189 248;
+  --color-brand-500: #0284c7;
+  --color-brand-500-rgb: 2 132 199;
+  --color-brand-600: #0369a1;
+  --color-brand-600-rgb: 3 105 161;
+  --color-brand-700: #075985;
+  --color-brand-700-rgb: 7 89 133;
+  --color-brand-800: #0c4a6e;
+  --color-brand-800-rgb: 12 74 110;
+  --color-brand-900: #082f49;
+  --color-brand-900-rgb: 8 47 73;
+  --color-brand-950: #041d2d;
+  --color-brand-950-rgb: 4 29 45;
+
+  --brand-accent: #06b6d4;
+  --brand-glow: rgba(2, 132, 199, 0.25);
+  --brand-gradient: linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #38bdf8 100%);
+}
+
 @layer base {
   html {
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
-  /* High contrast focus ring for accessibility */
+  body {
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  /* Adaptive high contrast focus ring for WCAG 2.2 AA / AAA */
   :focus-visible {
-    outline: 2px solid #0284c7;
+    outline: 2px solid var(--color-brand-500, #0284c7);
     outline-offset: 2px;
   }
+
+  ::selection {
+    background-color: var(--color-brand-500, #0284c7);
+    color: #ffffff;
+  }
+}
+
+/* Adaptive Brand Glow & Transitions */
+.adaptive-brand-bg {
+  background: var(--brand-gradient);
+}
+
+.adaptive-brand-glow {
+  box-shadow: 0 10px 30px -5px var(--brand-glow);
+}
+
+/* High Contrast POS Mode (Cashier Screen under heavy glare) */
+.pos-high-contrast {
+  --color-brand-50: #ffffff;
+  --color-brand-100: #f1f5f9;
+  --color-brand-200: #cbd5e1;
+  --color-brand-300: #94a3b8;
+  --color-brand-400: #64748b;
+  --color-brand-500: #000000;
+  --color-brand-500-rgb: 0 0 0;
+  --color-brand-600: #000000;
+  --color-brand-600-rgb: 0 0 0;
+  --color-brand-700: #000000;
+  --color-brand-700-rgb: 0 0 0;
+  --color-brand-800: #000000;
+  --color-brand-800-rgb: 0 0 0;
+  --color-brand-900: #000000;
+  --color-brand-900-rgb: 0 0 0;
+}
+
+.pos-high-contrast body {
+  background-color: #f8fafc;
+  color: #000000;
+}
+
+.pos-high-contrast button,
+.pos-high-contrast input,
+.pos-high-contrast select {
+  border-width: 2px !important;
 }
 
 /* Print Optimization for Cashier Cheat Sheets */
@@ -21,7 +99,7 @@
     color: black !important;
   }
 
-  header, footer, nav, .print\\:hidden {
+  header, footer, nav, .print\:hidden {
     display: none !important;
   }
 

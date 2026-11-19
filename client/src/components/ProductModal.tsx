@@ -3,6 +3,7 @@ import { Product } from '../types';
 import { X, Copy, Check, Sparkles, Building2, Calendar, Tag, AlertTriangle } from 'lucide-react';
 import { BarcodeVisual } from './BarcodeVisual';
 import { useToast } from '../context/ToastContext';
+import { useBrand } from '../context/BrandContext';
 
 interface ProductModalProps {
   product: Product | null;
@@ -20,13 +21,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const { showToast } = useToast();
+  const { activeBrand } = useBrand();
   const [copied, setCopied] = useState(false);
 
   // Focus trap & Escape listener
   useEffect(() => {
     if (!product) return;
 
-    const previouslyFocused = document.activeElement as HTMLElement | null;
     closeButtonRef.current?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -59,10 +60,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      previouslyFocused?.focus();
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [product, onClose, onNext, onPrevious]);
 
   if (!product) return null;
@@ -70,7 +68,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const handleCopyCode = () => {
     navigator.clipboard.writeText(product.code);
     setCopied(true);
-    showToast(`Código ${product.code} copiado`, 'success');
+    showToast(`Código PLU ${product.code} copiado`, 'success');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -87,17 +85,27 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-150 flex flex-col"
       >
         
+        {/* Dynamic Brand Accent Top Stripe */}
+        <div className="h-2 w-full shrink-0" style={{ background: activeBrand.gradient }} />
+
         {/* Header with Title and Close Button */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/70">
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-brand-50 text-brand-600 border border-brand-200">
+          <div className="flex items-center gap-2.5">
+            <span 
+              className="p-2 rounded-xl border"
+              style={{
+                backgroundColor: 'var(--color-brand-50)',
+                color: 'var(--color-brand-700)',
+                borderColor: 'var(--color-brand-200)'
+              }}
+            >
               <Tag className="w-5 h-5" />
             </span>
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Ficha Técnica de Caja
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                Ficha Técnica de Caja · {activeBrand.name}
               </span>
-              <h2 id="modal-product-title" className="text-lg font-bold text-slate-900">
+              <h2 id="modal-product-title" className="text-lg font-black text-slate-900">
                 Detalles del Producto
               </h2>
             </div>
@@ -107,7 +115,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             {onPrevious && (
               <button
                 onClick={onPrevious}
-                className="px-2.5 py-1 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+                className="px-2.5 py-1 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-xs"
                 title="Producto anterior (Flecha Izquierda)"
               >
                 ← Anterior
@@ -116,7 +124,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             {onNext && (
               <button
                 onClick={onNext}
-                className="px-2.5 py-1 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+                className="px-2.5 py-1 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-xs"
                 title="Producto siguiente (Flecha Derecha)"
               >
                 Siguiente →
@@ -144,7 +152,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           }`}>
             <div>
               <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 font-mono">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500 font-mono">
                   CÓDIGO DE CAJA / PLU
                 </span>
                 {product.isNew === 1 && (
@@ -164,7 +172,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
             <button
               onClick={handleCopyCode}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-600/30 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm text-white shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
+              style={{
+                background: activeBrand.gradient,
+                boxShadow: `0 4px 12px 0 ${activeBrand.glowRgba}`
+              }}
             >
               {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
               <span>{copied ? '¡Copiado!' : 'Copiar Código'}</span>
@@ -174,11 +186,18 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           {/* Product Name & Description */}
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200">
+              <span 
+                className="px-2.5 py-0.5 rounded-lg text-xs font-bold border"
+                style={{
+                  backgroundColor: 'var(--color-brand-50)',
+                  color: 'var(--color-brand-700)',
+                  borderColor: 'var(--color-brand-200)'
+                }}
+              >
                 {product.categoryName}
               </span>
               <span className="text-xs text-slate-400">·</span>
-              <span className="text-xs font-semibold text-slate-600">
+              <span className="text-xs font-bold text-slate-700">
                 Precio: ${product.price.toFixed(2)} por {product.unit}
               </span>
             </div>
@@ -192,13 +211,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
           {/* Cashier Alert / Special Instructions */}
           {product.notes && (
-            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                <p className="text-xs font-black uppercase tracking-wider text-amber-900">
                   Nota Importante para el Cajero:
                 </p>
-                <p className="text-sm text-amber-950 font-medium mt-0.5">
+                <p className="text-sm text-amber-950 font-semibold mt-0.5">
                   {product.notes}
                 </p>
               </div>
@@ -229,7 +248,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   key={store.id}
                   className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between text-xs font-medium"
                 >
-                  <span className="font-semibold text-slate-800">{store.name}</span>
+                  <span className="font-bold text-slate-800">{store.name}</span>
                   <span className="text-slate-500">{store.city}, {store.country}</span>
                 </div>
               ))}
@@ -251,7 +270,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         <div className="p-4 border-t border-slate-100 bg-slate-50/70 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="px-5 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Cerrar (Esc)
           </button>

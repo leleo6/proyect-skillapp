@@ -8,17 +8,18 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0284c7',
-          600: '#0369a1',
-          700: '#075985',
-          800: '#0c4a6e',
-          900: '#082f49',
-          950: '#041d2d'
+          50: 'rgb(var(--color-brand-50-rgb, 240 249 255) / <alpha-value>)',
+          100: 'rgb(var(--color-brand-100-rgb, 224 242 254) / <alpha-value>)',
+          200: 'rgb(var(--color-brand-200-rgb, 186 230 253) / <alpha-value>)',
+          300: 'rgb(var(--color-brand-300-rgb, 125 211 252) / <alpha-value>)',
+          400: 'rgb(var(--color-brand-400-rgb, 56 189 248) / <alpha-value>)',
+          500: 'rgb(var(--color-brand-500-rgb, 2 132 199) / <alpha-value>)',
+          600: 'rgb(var(--color-brand-600-rgb, 3 105 161) / <alpha-value>)',
+          700: 'rgb(var(--color-brand-700-rgb, 7 89 133) / <alpha-value>)',
+          800: 'rgb(var(--color-brand-800-rgb, 12 74 110) / <alpha-value>)',
+          900: 'rgb(var(--color-brand-900-rgb, 8 47 73) / <alpha-value>)',
+          950: 'rgb(var(--color-brand-950-rgb, 4 29 45) / <alpha-value>)',
+          DEFAULT: 'rgb(var(--color-brand-600-rgb, 3 105 161) / <alpha-value>)',
         },
         retail: {
           green: '#10b981',
@@ -27,6 +28,9 @@ export default {
           rose: '#f43f5e',
           indigo: '#6366f1'
         }
+      },
+      boxShadow: {
+        'brand-glow': '0 0 25px -4px var(--brand-glow, rgba(2, 132, 199, 0.25))',
       },
       fontFamily: {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace']
